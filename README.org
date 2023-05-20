@@ -1,0 +1,20 @@
+#+TITLE:algebra-system
+
+In 2022 I gave a small lecture titled /Adventures In (Quick & Dirty)
+Symbolic Programming/[fn:1] where we covered some techniques that
+underlie large scale symbolic systems[fn:2]. I wanted to cover term
+rewriting, and building a small algebra system for demonstration made
+the most sense.
+
+So this programs roots come from there, but I've elaborated it further
+and given it a good polishing. This is certainly not a "serious"
+algebra system, if you want one of those then [[http://groups.csail.mit.edu/mac/users/gjs/6946/installation.html][scmutils]] is fantastic.
+
+
+* Footnotes
+
+[fn:1] An homage to MIT's 6.945, /Adventures in Advanced Symbolic
+Programming/.
+
+[fn:2] By Greenspun's tenth, there are more of these than one might
+think.
