@@ -1,14 +1,15 @@
 #+TITLE:algebra-system
 
-In 2022 I gave a small lecture titled /Adventures In (Quick & Dirty)
-Symbolic Programming/[fn:1] where we covered some techniques that
-underlie large scale symbolic systems[fn:2]. I wanted to cover term
-rewriting, and building a small algebra system for demonstration made
-the most sense.
+In 2022 I gave a small lecture called /Adventures In (Quick & Dirty)
+Symbolic Programming/ [fn:1] where we covered techniques that underlie
+some large scale symbolic systems [fn:2]. I wanted to cover term rewriting,
+and using an algebra system as the instructional tool made the most
+sense.
 
-So this programs roots come from there, but I've elaborated it further
-and given it a good polishing. This is certainly not a "serious"
-algebra system, if you want one of those then [[http://groups.csail.mit.edu/mac/users/gjs/6946/installation.html][scmutils]] is fantastic.
+That's where the roots of this program come from, but I've elaborated
+it further and given it a good polishing all around. This certainly
+doesn't make it a "serious" algebra system (if you want one of those
+then [[http://groups.csail.mit.edu/mac/users/gjs/6946/installation.html][scmutils]] is fantastic), but something fun nonetheless.
 
 
 * Footnotes
