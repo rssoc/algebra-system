@@ -1,66 +1,40 @@
-;;; rewriter.scm -- Support for the rewriting of terms according to a
-;;; rule-base.
+;;; rewriter.scm -- Support for the matching and rewriting of terms.
 ;;;
-;;; The matching language by example:
+;;; The match and rewrite language by example:
 ;;;
-;;; Consider: (compile-rule (op ?a 0) ?a)
-
+;;; Rewrite rules are procedures that either "rewrite" their input, or
+;;; return #f if the rule is inapplicable. Rewrite rules are
+;;; applicable when the left-hand side matches on the input, and the
+;;; right-hand side does not return false. They are constructed using
+;;; the `rule' macro.
+;;;
+;;; Consider: (rule (foo ... ?a 0 ...)
+;;;                 (and (number? ?a)
+;;;                      (foo ... ?a ...)))
+;;;
+;;; - `foo' and 0 are evaluated and their result is matched literally
+;;;   against the input expression.
+;;;
+;;; - `?a' matches against anything, and binds the result to `?a' in
+;;;    the right-hand side.
+;;;
+;;; - `...' and `...' both match zero or more things, and binds the
+;;;    match to the right-hand side. This is also an example of an
+;;;    anonymous match, where the matches are bound to the ellipses on
+;;;    the right-hand side left-to-right. We could have also named
+;;;    them `left...' and `right...'  respectively.
+;;;
+;;; The right-hand side is then evaluated in an environment where the
+;;; bindings made by the matcher are present. The result of this
+;;; evaluation is what the rewrite rule returns.
 
 
 
-(define (map-tree procedure xs)
-  (cond ((null? xs) '())
-        ((list? xs)
-         (cons
-          (map-tree procedure (car xs))
-          (map-tree procedure (cdr xs))))
-        (else
-         (procedure xs))))
+(define (make-rule-base . rules)
+  (apply list rules))
 
-(define (butlast xs)
-  (reverse (cdr (reverse xs))))
-
-
-
-(define (pattern-variable? symbol)
-  (eq? (string-ref (symbol-name symbol) 0) #\?))
-
-(define (compile-lhs lhs)
-  (list 'QUASIQUOTE
-        (map-tree
-         (lambda (symbol)
-           (if (pattern-variable? symbol)
-               (list '? symbol)
-               (list 'UNQUOTE symbol)))
-         lhs)))
-
-(define (compile-rhs rhs)
-  (list 'QUASIQUOTE
-        (map-tree
-         (lambda (symbol)
-           (cond ((pattern-variable? symbol)
-                  (list '? symbol))
-                 ((member symbol '(if and or))
-                  symbol)
-                 (else
-                  (list 'UNQUOTE symbol))))
-         (last rhs))))
-
-(define-syntax rule
-  (er-macro-transformer
-   (lambda (expr rename compare)
-     (let ((lhs (compile-lhs (cadr expr)))
-           (rhs (caddr expr)))
-       (let ((receiver
-              `(lambda ,(simple-matcher-pattern->names lhs)
-                 ,rhs)))
-         `(lambda (data)
-            (apply-simple-matcher
-             (make-simple-matcher
-              ,lhs)
-             data eq?
-             (lambda (values)
-               (apply ,receiver values)))))))))
+(define (rule-base/extend! rule rule-base)
+  (push! rule rule-base))
 
 
 
@@ -98,42 +72,90 @@
      simplified-subterms the-rules
      win lose)))
 
+
 
+(define (pattern/variable? obj)
+  (and (symbol? obj)
+       (eq? (string-ref (symbol-name obj) 0)
+            #\?)))
+
+(define (pattern/ellipsis? obj)
+  (and (symbol? obj)
+       (equal? (string-take-right (symbol-name obj) 3)
+               "...")))
+
+(define (pattern/anonymous? obj)
+  (and (symbol? obj)
+       (member (symbol-name obj) '("..." "?"))
+       #t))
+
+(define (pattern/deanonymize pattern)
+  (let ((count 0))
+    (map-tree
+     (lambda (symbol)
+       (if (pattern/anonymous? symbol)
+           (begin0
+            (intern
+             (string-append
+              (number->string count) "_"
+              (symbol-name symbol)))
+            (set! count (1+ count)))
+           symbol))
+     pattern)))
 
 
 
-(define-syntax define-property
-  (syntax-rules (rule)
-    ;; NOTE: Instead of creating the list of rules at compile-time, we
-    ;; have to map over a list of rule constructors (meaning we create
-    ;; our list of rules at run-time), to work around the
-    ;; ellipsis-depth of op. Admittedly, the implementation would be
-    ;; slightly cleaner given unhygienic syntax-rules.
-    ((_ property-name
-        (rule (op sub-terms ...) rhs)
-        ...)
-     (define property-name
-       (lambda (the-op)
-         (map
-          (lambda (a-rule)
-            (a-rule the-op))
-          (list
-           (lambda (op)
-             (rule
-              (op sub-terms ...)
-              rhs))
-           ...)))))
-    ((_ property-name (parameters ...)
-        (rule (op sub-terms ...) rhs)
-        ...)
-     (define (property-name parameters ...)
-       (lambda (the-op)
-         (map
-          (lambda (a-rule)
-            (a-rule the-op))
-          (list
-           (lambda (op)
-             (rule
-              (op sub-terms ...)
-              rhs))
-           ...)))))))
+(define (rule/compile-lhs lhs)
+  (list
+   'QUASIQUOTE
+   (map-tree
+    (lambda (symbol)
+      (cond ((pattern/variable? symbol)
+             (list '? symbol))
+            ((pattern/ellipsis? symbol)
+             (list '?? symbol))
+            (else
+             (list 'UNQUOTE symbol))))
+    (pattern/deanonymize lhs))))
+
+(define (rule/compile-rhs rhs bindings)
+  `(LAMBDA (_)
+     (APPLY
+      (LAMBDA ,bindings
+       (EVAL ,(list
+               'QUASIQUOTE
+               (map-tree
+                (lambda (symbol)
+                  (cond ((member symbol '(if and or))
+                         symbol)
+                        ((pattern/ellipsis? symbol)
+                         (list 'UNQUOTE-SPLICING symbol))
+                        (else
+                         (list 'UNQUOTE symbol))))
+                (pattern/deanonymize rhs)))
+             #F))
+      _)))
+
+(define (rule/compile lhs rhs)
+  (let* ((lhs (rule/compile-lhs lhs))
+         (rhs (rule/compile-rhs rhs
+               (simple-matcher-pattern->names lhs))))
+    (values lhs rhs)))
+
+(define-syntax rule
+  (er-macro-transformer
+   (lambda (expr rename compare)
+     (let ((lhs (cadr expr))
+           (rhs (caddr expr))
+           (er-data (rename 'data))
+           (er-values (rename 'values)))
+       (call-with-values
+           (lambda () (rule/compile lhs rhs))
+         (lambda (lhs rhs)
+           `(lambda (,er-data)
+              (apply-simple-matcher
+               (make-simple-matcher ,lhs)
+               ,er-data eq?
+               ,rhs))))))))
+
+
