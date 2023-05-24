@@ -5,9 +5,16 @@
 
 
 
+(define (backwards? a b)
+  (and (number? a)
+       (not (number? b))))
+
+
+
 (define-property is-commutatitve
   (rule (op ?b ?a)
-        (op ?a ?b)))
+        (and (backwards? ?b ?a)
+             (op ?a ?b))))
 
 (define-property is-associative
   (rule (op ?a (op ?b ?c))
