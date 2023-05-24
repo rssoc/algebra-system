@@ -1,33 +1,73 @@
-;;; properties.scm -- Define some basic algebraic properties that an
-;;; operation can have.
+;;; properties.scm -- Support for defining algebraic properties.
+;;;
+;;; Properties are really just templates for rewrite rules that are
+;;; instantiated when asserted. Optionally, they may be
+;;; parameterized. This will probably be extended in the future to
+;;; support building more abstract properties.
 
 
 
-(define-property is-commutatitve
-  (rule (op ?b ?a)
-        (op ?a ?b)))
+(define-syntax define-property
+  ;; NOTE: Instead of creating the list of rules at compile-time, we
+  ;;       have to map over a list of rule constructors (meaning we
+  ;;       create our list of rules at run-time), to work around the
+  ;;       ellipsis-depth of op. Admittedly, the implementation
+  ;;       would be significantly shorter when given unhygienic
+  ;;       syntax-rules.
+  (syntax-rules (rule)
+    ((_ property-name
+        (rule (op sub-terms ...) rhs)
+        ...)
+     (define property-name
+       (lambda (the-op)
+         (map
+          (lambda (a-rule)
+            (a-rule the-op))
+          (list
+           (lambda (op)
+             (rule
+              (op sub-terms ...)
+              rhs))
+           ...)))))
 
-(define-property is-associative
-  (rule (op ?a (op ?b ?c))
-        (op ?a ?b ?c)))
+    ((_ property-name (parameters ...)
+        (rule (op sub-terms ...) rhs)
+        ...)
+     (define (property-name parameters ...)
+       (lambda (the-op)
+         (map
+          (lambda (a-rule)
+            (a-rule the-op))
+          (list
+           (lambda (op)
+             (rule
+              (op sub-terms ...)
+              rhs))
+           ...)))))
 
-(define-property distributes-over (op₂)
-  (rule (op₁ ?a (op₂ ?b ?c))
-        (op₂ (op₁ ?a ?b)
-             (op₁ ?a ?c))))
+    ((_ property-name (parameters ...)
+        (rule (op sub-terms ...) rhs)
+        ...)
+     (define (property-name parameters ...)
+       (lambda (the-op)
+         (map
+          (lambda (a-rule)
+            (a-rule the-op))
+          (list
+           (lambda (op)
+             (rule
+              (op sub-terms ...)
+              rhs))
+           ...)))))
 
-(define-property has-identity (i)
-  (rule (op ?a)
-        ?a)
-  (rule (op i ?a)
-        ?a)
-  (rule (op ?a i)
-        ?a))
-
-
-
-;; (assert-properties! '+
-;;  is-commutative
-;;  is-associative
-;;  (distributes-over '*)
-;;  (has-identity 0))
+;;; NOTE: Everything above is actually special case of this
+;;; one. Unfortunately I can't trivially reflect this fact.
+    ((_ property-name (parameters ...)
+        properties ...
+        ...)
+     (define (property-name parameters ...)
+       (lambda (the-op)
+         (map
+          (lambda (a-rule)
+            (a-rule the-op))
+          (list properties ...)))))))
