@@ -1,0 +1,64 @@
+;;; -*- Mode: Scheme -*-
+;;; algebra-system.pkg -- Package definition for the algebra system.
+
+
+
+(define-package (algebra-system)
+  (parent ()))
+
+(define-package (algebra-system support)
+  (parent (algebra-system)))
+
+
+
+(define-package (algebra-system support stdlib)
+  (parent (algebra-system support))
+  (files "src/support/stdlib")
+  (export (algebra-system support)
+          push!
+          pop!
+          map-tree
+          filter-tree
+          butlast
+          string-take-right))
+
+(define-package (algebra-system support rewriter)
+  (parent (algebra-system support))
+  (files "src/support/rewriter")
+  (export (algebra-system support)
+          make-rule-base
+          rule-base/extend!
+          try-rule
+          try-rules
+          enter-rewrite-system
+          rule))
+
+(define-package (algebra-system support operators)
+  (parent (algebra-system support))
+  (files "src/support/operators")
+  (export (algebra-system support)
+          op/extend!
+          make-extensible-rewriting-op
+          make-extensible-arithmetic-op
+          define-arithmetic-op))
+
+(define-package (algebra-system support properties)
+  (parent (algebra-system support))
+  (files "src/support/properties")
+  (export (algebra-system support)
+          define-property))
+
+
+
+(define-package (algebra-system user)
+  (parent (algebra-system))
+  (files "src/algebra")
+  (import (algebra-system support)
+          define-property
+          define-arithmetic-op
+          ;; FIXME: Ugh, syntax-rules doesn't create a syntactic
+          ;; closure... Is it worth putting up with?
+          rule
+          enter-rewrite-system
+          make-extensible-arithmetic-op
+          op/extend!))

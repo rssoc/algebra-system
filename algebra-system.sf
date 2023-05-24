@@ -1,0 +1,24 @@
+;;; -*- Mode: Scheme -*-
+;;; algebra-system.sf -- Compile and load the package.
+
+
+
+(define (compile-and-load package)
+  (load-option 'cref)
+  (with-working-directory-pathname
+   (directory-pathname (current-load-pathname))
+   (lambda ()
+     (let ((package-set (package-set-pathname
+                         (symbol-name package))))
+       (if (not (file-modification-time<?
+                 (string-append (symbol-name package) ".pkg")
+                 package-set))
+           (cref/generate-trivial-constructor (symbol-name package)))
+       (load-package-set (symbol-name package))))))
+
+(define (do-it)
+  (compile-and-load 'algebra-system))
+
+
+
+(do-it)
