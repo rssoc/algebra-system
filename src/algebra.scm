@@ -11,7 +11,7 @@
 
 
 
-(define-property is-commutatitve
+(define-property is-commutative
   (rule (op ?b ?a)
         (and (backwards? ?b ?a)
              (op ?a ?b))))
@@ -46,12 +46,12 @@
 (define-arithmetic-op +
   (has-identity 0)
   is-commutative
-  is-associate)
+  is-associative)
 
 (define-arithmetic-op -
   (has-identity 0)
   is-commutative
-  is-associate)
+  is-associative)
 
 (define-arithmetic-op *
   (distributes-over '+)
@@ -59,7 +59,7 @@
   (distributes-over '/)
   (has-identity 1)
   is-commutative
-  is-associate)
+  is-associative)
 
 (define-arithmetic-op /
   (distributes-over '+)
@@ -67,4 +67,4 @@
   (distributes-over '*)
   (has-left-identity 1)
   is-commutative
-  is-associate)
+  is-associative)

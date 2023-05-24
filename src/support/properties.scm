@@ -63,8 +63,7 @@
 ;;; NOTE: Everything above is actually special case of this
 ;;; one. Unfortunately I can't trivially reflect this fact.
     ((_ property-name (parameters ...)
-        properties ...
-        ...)
+        properties ...)
      (define (property-name parameters ...)
        (lambda (the-op)
          (map

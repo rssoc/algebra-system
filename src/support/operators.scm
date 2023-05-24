@@ -25,7 +25,7 @@
 
 (define (op/extend! op rule)
   (hash-table-ref
-   *op-storage*
+   *op-storage* op
    (lambda ()
      (error "OP/EXTEND! -- Operator is not an extensible operator: " op))
    (lambda (rule-base)
@@ -38,7 +38,7 @@
     (define (the-operator . operands)
       (let ((expression (cons name operands)))
         (enter-rewrite-system
-         expression ground-rules
+         expression the-rules
          (lambda (rewriten-expression)
            rewriten-expression)
          (lambda ()
