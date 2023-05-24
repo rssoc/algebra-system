@@ -46,6 +46,7 @@
   (parent (algebra-system support))
   (files "src/support/properties")
   (export (algebra-system support)
+          property/assert!
           define-property))
 
 
@@ -61,4 +62,5 @@
           rule
           enter-rewrite-system
           make-extensible-arithmetic-op
-          op/extend!))
+          op/extend!
+          property/assert!))

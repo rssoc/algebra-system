@@ -7,6 +7,14 @@
 
 
 
+(define (property/assert! op op-name property)
+  (let ((new-rules (property op-name)))
+    (for-each (lambda (rule)
+                (op/extend! op rule))
+              new-rules)))
+
+
+
 (define-syntax define-property
   ;; NOTE: Instead of creating the list of rules at compile-time, we
   ;;       have to map over a list of rule constructors (meaning we
@@ -66,7 +74,8 @@
         properties ...)
      (define (property-name parameters ...)
        (lambda (the-op)
-         (map
-          (lambda (a-rule)
-            (a-rule the-op))
-          (list properties ...)))))))
+         (concatenate
+          (map
+           (lambda (a-rule)
+             (a-rule the-op))
+           (list properties ...))))))))

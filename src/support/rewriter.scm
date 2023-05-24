@@ -133,7 +133,7 @@
                         (else
                          (list 'UNQUOTE symbol))))
                 (pattern/deanonymize rhs)))
-             #F))
+             (->ENVIRONMENT '(ALGEBRA-SYSTEM USER))))
       _)))
 
 (define (rule/compile lhs rhs)
