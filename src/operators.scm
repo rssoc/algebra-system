@@ -1,64 +1,49 @@
-;;; operators.scm
+;;; operators.scm -- Extensible rewriting and arithmetic operators.
+;;;
+;;; This is a neat idea that I had to gloss over in the lecture. Our
+;;; intent is to replace MIT-Scheme's arithmetic system with one
+;;; that's extensible at runtime. It's basically a riff on GJS's idea
+;;; of sticky notes. Rewriting ops have an internal store of rules (a
+;;; rule-base) to reference for rewriting, so what we've done here is
+;;; expose the internal store to the outside world for mutation. This
+;;; lets us mess with the rule-base of an op in whichever way we
+;;; please after the fact. This also disgusts your average Haskeller,
+;;; which is a good thing.
 
 
+;; NOTE: weak-hash-tables are the best thing since sliced bread,
+;;       everybody should have them.
+(define *op-storage*
+  (make-key-weak-eq-hash-table))
 
-(define condition-type:no-applicable-methods
-  (make-condition-type
-   'no-applicable-methods condition-type:error
-   '(operator operands)
-   (lambda (condition port)
-     (write-string "No applicable methods for " port)
-     (write (access-condition condition 'operator) port)
-     (write-string " with these arguments: " port)
-     (write (access-condition condition 'operands) port)
-     (write-string "." port))))
-
-(define error:no-applicable-methods
-  (condition-signaller
-   condition-type:no-applicable-methods
-   '(operator operands)
-   standard-error-handler))
-
-
-
-(define *pattern-operators*
-  (make-hash-table))
-
-(define (pattern-operator-new! operator knowledge-base)
+(define (op/register! op #!optional rule-base)
+  (when (default-object? rule-base)
+    (set! rule-base (make-rule-base)))
   (hash-table-set!
-   *pattern-operators*
-   operator (cons '() knowledge-base)))
+   *op-storage*
+   op rule-base))
 
-(define (pattern-operator-add! operator rule #!optional overriding?)
+(define (op/extend! op rule)
   (hash-table-ref
-   *pattern-operators* operator
+   *op-storage*
    (lambda ()
-     (error "Not an extensible operator: " operator))
-   (lambda (knowledge-base)
-     (set-cdr!
-      knowledge-base
-      (if overriding?
-          (append (list rule) (cdr knowledge-base))
-          (append (cdr knowledge-base) (list rule)))))))
+     (error "OP/EXTEND! -- Operator is not an extensible operator: " op))
+   (lambda (rule-base)
+     (rule-base/extend! rule rule-base))))
 
 
 
-(define (make-extensible-rewriting-op name . ground-rules)
-  (let ((the-rules ground-rules))
+(define (make-extensible-rewriting-op name . rules)
+  (let ((the-rules (apply make-rule-base rules)))
     (define (the-operator . operands)
       (let ((expression (cons name operands)))
-        (bind-condition-handler
-         (list condition-type:inapplicable-object)
-         (lambda (condition)
-           (use-value (lambda _ (cons name _))))
+        (enter-rewrite-system
+         expression ground-rules
+         (lambda (rewriten-expression)
+           rewriten-expression)
          (lambda ()
-           (enter-rewrite-system
-            expression ground-rules
-            (lambda (rewriten-expression)
-              rewriten-expression)
-            (lambda ()
-              expression))))))
-    (pattern-operator-new! the-operator the-rules)
+           expression))))
+    (op/register! the-operator the-rules)
     the-operator))
 
 (define (make-extensible-arithmetic-op op-name op-numeric)
@@ -70,7 +55,18 @@
    (rule (op-name ?a ?b)
          (and (number? ?a) (number? ?b)
               (op-numeric ?a ?b)))
-   ;; (rule (op-name lhs... ?a ?b rhs...)
-   ;;       (and (number? ?a) (number? ?b)
-   ;;            (op-name lhs... (op-numeric ?a ?b) rhs...)))
-   ))
+   (rule (op-name ... ?a ?b ...)
+         (and (number? ?a) (number? ?b)
+              (op-name ... (op-numeric ?a ?b) ...)))))
+
+(define-syntax define-arithmetic-op
+  (syntax-rules ()
+    ((_ op property ...)
+     (begin
+       (define op
+         (let ((op-numeric op))
+           (make-extensible-arithmetic-op 'op op)))
+       (op/extend! op property)
+       ...))))
+
+
