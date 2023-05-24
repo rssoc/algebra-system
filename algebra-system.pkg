@@ -37,6 +37,7 @@
   (parent (algebra-system support))
   (files "src/support/operators")
   (export (algebra-system support)
+          op/extensible?
           op/extend!
           make-extensible-rewriting-op
           make-extensible-arithmetic-op
@@ -48,6 +49,13 @@
   (export (algebra-system support)
           property/assert!
           define-property))
+
+(define-package (algebra-system support recondition)
+  (parent (algebra-system support))
+  (files "src/support/recondition")
+  (import (runtime debugging-info)
+          stack-frame/next-subproblem
+          stack-frame/debugging-info))
 
 
 

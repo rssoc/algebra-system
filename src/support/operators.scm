@@ -16,6 +16,10 @@
 (define *op-storage*
   (make-key-weak-eq-hash-table))
 
+(define (op/extensible? op)
+  (hash-table-contains?
+   *op-storage* op))
+
 (define (op/register! op #!optional rule-base)
   (when (default-object? rule-base)
     (set! rule-base (make-rule-base)))

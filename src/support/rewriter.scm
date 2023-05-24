@@ -39,10 +39,17 @@
 
 
 (define (try-rule data rule win lose)
-  (let ((result (rule data)))
-    (if result
-        (win result)
-        (lose))))
+  (bind-condition-handler
+   (list condition-type:inapplicable-object)
+   (lambda (condition)
+     (let ((operator (access-condition condition 'datum))
+           (operands (access-condition condition 'operands)))
+       (use-value (lambda _ (cons operator operands)))))
+   (lambda ()
+     (let ((result (rule data)))
+       (if result
+           (win result)
+           (lose))))))
 
 (define (try-rules data the-rules win lose)
   (let per-rule ((the-rules the-rules))
@@ -118,23 +125,34 @@
              (list 'UNQUOTE symbol))))
     (pattern/deanonymize lhs))))
 
+(eval
+ '(define $the-environment
+    (spar-classifier->runtime
+     (delay
+       (spar-and
+        (spar-subform)
+        (spar-match-null)
+        (spar-push-value the-environment-item
+                         spar-arg:ctx)))))
+ (->environment '(runtime syntax mit)))
+
 (define (rule/compile-rhs rhs bindings)
   `(LAMBDA (_)
-     (APPLY
-      (LAMBDA ,bindings
-       (EVAL ,(list
-               'QUASIQUOTE
-               (map-tree
-                (lambda (symbol)
-                  (cond ((member symbol '(if and or))
-                         symbol)
-                        ((pattern/ellipsis? symbol)
-                         (list 'UNQUOTE-SPLICING symbol))
-                        (else
-                         (list 'UNQUOTE symbol))))
-                (pattern/deanonymize rhs)))
-             (->ENVIRONMENT '(ALGEBRA-SYSTEM USER))))
-      _)))
+    (APPLY
+     (LAMBDA ,bindings
+      (EVAL
+       ,(list
+         'QUASIQUOTE
+         (map-tree
+          (lambda (symbol)
+            (cond ((member symbol '(if and or))
+                   symbol)
+                  ((pattern/ellipsis? symbol)
+                   (list 'UNQUOTE-SPLICING (list 'QUOTE symbol)))
+                  (else symbol)))
+          (pattern/deanonymize rhs)))
+       (THE-ENVIRONMENT)))
+     _)))
 
 (define (rule/compile lhs rhs)
   (let* ((lhs (rule/compile-lhs lhs))
