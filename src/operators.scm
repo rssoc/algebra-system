@@ -66,7 +66,7 @@
        (define op
          (let ((op-numeric op))
            (make-extensible-arithmetic-op 'op op)))
-       (op/extend! op property)
+       (op/extend! op (property 'op))
        ...))))
 
 
