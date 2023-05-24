@@ -6,8 +6,8 @@
 
 
 (define (backwards? a b)
-  (and (number? a)
-       (not (number? b))))
+  (and (not (number? a))
+       (number? b)))
 
 
 
