@@ -112,53 +112,67 @@
 
 
 
-(define (rule/compile-lhs lhs)
-  (list
-   'QUASIQUOTE
-   (map-tree
-    (lambda (symbol)
-      (cond ((pattern/variable? symbol)
-             (list '? symbol))
-            ((pattern/ellipsis? symbol)
-             (list '?? symbol))
-            (else
-             (list 'UNQUOTE symbol))))
-    (pattern/deanonymize lhs))))
+(define ((make-compiler passes) lhs rhs)
+  (if (null? passes)
+      (values lhs rhs)
+      (call-with-values
+          (lambda () ((car passes) lhs rhs))
+        (lambda (new-lhs new-rhs)
+          ((make-compiler (cdr passes)) new-lhs new-rhs)))))
 
-(eval
- '(define $the-environment
-    (spar-classifier->runtime
-     (delay
-       (spar-and
-        (spar-subform)
-        (spar-match-null)
-        (spar-push-value the-environment-item
-                         spar-arg:ctx)))))
- (->environment '(runtime syntax mit)))
-
-(define (rule/compile-rhs rhs bindings)
-  `(LAMBDA (_)
-    (APPLY
-     (LAMBDA ,bindings
-      (EVAL
-       ,(list
-         'QUASIQUOTE
-         (map-tree
-          (lambda (symbol)
-            (cond ((member symbol '(if and or))
-                   symbol)
-                  ((pattern/ellipsis? symbol)
-                   (list 'UNQUOTE-SPLICING (list 'QUOTE symbol)))
-                  (else symbol)))
+(define (pass/deanonymize lhs rhs)
+  (values (pattern/deanonymize lhs)
           (pattern/deanonymize rhs)))
-       (THE-ENVIRONMENT)))
-     _)))
 
-(define (rule/compile lhs rhs)
-  (let* ((lhs (rule/compile-lhs lhs))
-         (rhs (rule/compile-rhs rhs
-               (simple-matcher-pattern->names lhs))))
-    (values lhs rhs)))
+(define (pass/resolve-pattern lhs rhs)
+  (values (list
+           'QUASIQUOTE
+           (map-tree
+            (lambda (symbol)
+              (cond ((pattern/variable? symbol)
+                     (list '? symbol))
+                    ((pattern/ellipsis? symbol)
+                     (list '?? symbol))
+                    (else
+                     (list 'UNQUOTE symbol))))
+            lhs))
+          rhs))
+
+(define (pass/partially-freeze-returns lhs rhs)
+  (define (unfreeze pattern)
+    (if (pattern/ellipsis? pattern)
+        (list 'UNQUOTE-SPLICING pattern)
+        (list 'UNQUOTE pattern)))
+  (define (partial-freeze pattern)
+    (if (list? pattern)
+        (list 'QUASIQUOTE
+              (map unfreeze pattern))
+        (unfreeze pattern)))
+  (let ((ops-on-lhs (map car (collect-if list? lhs))))
+    (define (return-expression? expression)
+      (and (list? expression)
+           (member (car expression) ops-on-lhs)))
+    (values lhs (only-on return-expression?
+                         partial-freeze
+                         rhs))))
+
+(define (pass/lift-bindings lhs rhs)
+  (let ((lhs-bindings
+         (simple-matcher-pattern->names lhs)))
+    (values lhs `(lambda ,lhs-bindings ,rhs))))
+
+(define (pass/applify lhs rhs)
+  (values lhs `(lambda (_) (apply ,rhs _))))
+
+
+
+(define rule/compile
+  (make-compiler
+   (list pass/deanonymize
+         pass/partially-freeze-returns
+         pass/resolve-pattern
+         pass/lift-bindings
+         pass/applify)))
 
 (define-syntax rule
   (er-macro-transformer
