@@ -17,6 +17,11 @@
   (export (algebra-system support)
           push!
           pop!
+          depth-first
+          breath-first
+          walk
+          collect-if
+          only-on
           map-tree
           filter-tree
           butlast
