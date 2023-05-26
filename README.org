@@ -1,16 +1,52 @@
 #+TITLE:algebra-system
 
 In 2022 I gave a small lecture called /Adventures In (Quick & Dirty)
-Symbolic Programming/ [fn:1] where we covered techniques that underlie
-some large scale symbolic systems [fn:2]. I wanted to cover term rewriting,
-and using an algebra system as the instructional tool made the most
-sense.
+Symbolic Programming/ [fn:1] where we covered some techniques
+underlying large scale symbolic systems [fn:2]. I wanted to cover term
+rewriting, and using an algebra system as the instructional tool made
+the most sense.
 
 That's where the roots of this program come from, but I've elaborated
-it further and given it a good polishing all around. This certainly
+it further and given it a good polishing all around[fn:3]. This certainly
 doesn't make it a "serious" algebra system (if you want one of those
 then [[http://groups.csail.mit.edu/mac/users/gjs/6946/installation.html][scmutils]] is fantastic), but something fun nonetheless.
 
+* Usage
+Using the system is straightforward. Launch MIT-Scheme, load in the
+system, and then enter the ~(algebra-system user)~ environment.
+#+begin_src
+1 ]=> (load "algebra-system.sf")
+
+;Loading "algebra-system.sf"...
+;  [Output Omitted]...
+;... done
+;Unspecified return value
+
+1 ]=> (ge '(algebra-system user))
+
+;package: (algebra-system user)
+;Value: #[environment 1]
+
+1 ]=>
+#+end_src
+
+Now you can start evaluating algebraic expressions!
+
+#+begin_src
+1 ]=> (* x (+ y (+ z w)))
+
+;Value: (+ (* x y) (* x z) (* x w))
+
+1 ]=> (+ (* 3 (+ x 1)) -3)
+
+;Value: (* 3 x)
+
+1 ]=> (+ (* 3 x) (* 4 x))
+
+;Value: (* 7 x)
+
+1 ]=>
+#+end_src
 
 * Footnotes
 
@@ -19,3 +55,8 @@ Programming/.
 
 [fn:2] By Greenspun's tenth, there are more of these than one might
 think.
+
+[fn:3] Let this be a lesson that sugar is bad... Something I already
+knew. I created extra work for myself by prettying up the rule syntax,
+just to end up something that's significantly less flexible. This
+bothers me, so I might get rid of it at some point.
