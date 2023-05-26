@@ -63,21 +63,22 @@
 
 (define (enter-rewrite-system
          expression the-rules
-         win lose)
-  (let ((simplified-subterms
-         (if (list? expression)
-             (map (lambda (subterm)
-                    (enter-rewrite-system
-                     subterm the-rules
-                     (lambda (simplified-term)
-                       simplified-term)
-                     (lambda ()
-                       subterm)))
-                  expression)
-             expression)))
-    (try-rules
-     simplified-subterms the-rules
-     win lose)))
+         win)
+  (define (simplify expression)
+    (let ((simplified-expression
+           (if (list? expression)
+               (map simplify expression)
+               expression)))
+      (try-rules
+       simplified-expression the-rules
+       (lambda (result)
+         (simplify
+          (if (list? result)
+              (eval result (->environment '(algebra-system user)))
+              result)))
+       (lambda ()
+         simplified-expression))))
+  (win (simplify expression)))
 
 
 

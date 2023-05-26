@@ -44,9 +44,7 @@
         (enter-rewrite-system
          expression the-rules
          (lambda (rewriten-expression)
-           rewriten-expression)
-         (lambda ()
-           expression))))
+           rewriten-expression))))
     (op/register! the-operator the-rules)
     the-operator))
 
