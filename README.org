@@ -18,7 +18,7 @@ system, and then enter the ~(algebra-system user)~ environment.
 1 ]=> (load "algebra-system.sf")
 
 ;Loading "algebra-system.sf"...
-;  [Output Omitted]...
+;  [Output Omitted...]
 ;... done
 ;Unspecified return value
 
@@ -30,7 +30,7 @@ system, and then enter the ~(algebra-system user)~ environment.
 1 ]=>
 #+end_src
 
-Now you can start evaluating algebraic expressions!
+Now you can start evaluating algebraic expressions![fn:4]
 
 #+begin_src
 1 ]=> (* x (+ y (+ z w)))
@@ -41,7 +41,8 @@ Now you can start evaluating algebraic expressions!
 
 ;Value: (* 3 x)
 
-1 ]=> (+ (* 3 x) (* 4 x))
+1 ]=> (let ((y (* 4 x)))
+        (+ (* 3 x) y))
 
 ;Value: (* 7 x)
 
@@ -60,3 +61,5 @@ think.
 knew. I created extra work for myself by prettying up the rule syntax,
 just to end up something that's significantly less flexible. This
 bothers me, so I might get rid of it at some point.
+
+[fn:4] The final example should pique the curiosity of the astute.
